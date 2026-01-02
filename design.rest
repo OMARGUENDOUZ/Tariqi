@@ -1,0 +1,20 @@
+@site=https://restdesign.dev
+@local=http://localhost:8080
+
+GET {{site}}/api/customers/8
+Accept: application/json
+
+###
+
+GET {{site}}/api/customers
+Accept: application/json
+Conte7nt-Type: application/json
+
+###
+
+DELETE {{site}}/api/customers/8
+Accept: application/json
+
+###
+
+GET {{local}}/Student/1
