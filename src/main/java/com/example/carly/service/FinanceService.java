@@ -1,10 +1,10 @@
 package com.example.carly.service;
 
+import com.example.carly.component.InvoiceCalculator;
 import com.example.carly.model.*;
 import com.example.carly.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -17,15 +17,17 @@ public class FinanceService {
     private final StudentRepository studentRepository;
     private final ExamRepository examRepository;
     private final PricingRepository pricingRepository;
+    private final InvoiceCalculator invoiceCalculator;
 
     public FinanceService(InvoiceRepository invoiceRepository, PaymentRepository paymentRepository,
             StudentRepository studentRepository, ExamRepository examRepository,
-            PricingRepository pricingRepository) {
+            PricingRepository pricingRepository, InvoiceCalculator invoiceCalculator) {
         this.invoiceRepository = invoiceRepository;
         this.paymentRepository = paymentRepository;
         this.studentRepository = studentRepository;
         this.examRepository = examRepository;
         this.pricingRepository = pricingRepository;
+        this.invoiceCalculator = invoiceCalculator;
     }
 
     @Transactional
@@ -39,55 +41,8 @@ public class FinanceService {
 
         List<ExamStudent> exams = examRepository.findByStudentId(studentId);
 
-        BigDecimal totalExamFees = BigDecimal.ZERO;
-        java.util.List<java.util.Map<String, Object>> items = new java.util.ArrayList<>();
-
-        // Add Base Course Fee Item
-        items.add(java.util.Map.of(
-                "description", "Frais de formation (" + student.getRequestedLicense() + ")",
-                "amount", pricing.getBaseCourseFee()));
-
-        for (ExamStudent exam : exams) {
-            BigDecimal examTotal = BigDecimal.ZERO;
-            String desc = "Examen " + exam.getCategory() + " (" + exam.getDate() + ")";
-
-            if (exam.getResult() == ExamResult.ABSENT_UNJUSTIFIED) {
-                if (pricing.isBillExamOnUnjustifiedAbsence()) {
-                    examTotal = examTotal.add(pricing.getExamUnitFee());
-                    desc += " [Exam Facturé]";
-                }
-                if (pricing.isBillStampOnUnjustifiedAbsence()) {
-                    examTotal = examTotal.add(pricing.getStampUnitFee());
-                    desc += " + Timbre (Absence NJ)";
-                }
-            } else if (exam.getResult() == ExamResult.ABSENT_JUSTIFIED) {
-                if (pricing.isBillExamOnJustifiedAbsence()) {
-                    examTotal = examTotal.add(pricing.getExamUnitFee());
-                    desc += " [Exam Facturé]";
-                }
-                if (pricing.isBillStampOnJustifiedAbsence()) {
-                    examTotal = examTotal.add(pricing.getStampUnitFee());
-                    desc += " + Timbre (Absence J)";
-                }
-            } else {
-                // PENDING / PASS / FAIL -> Always bill exam + stamp (Standard rule)
-                // Unless we want PENDING to be free until passed? checking user request...
-                // User said "30000 frais de formation et 2000 exam code... et 300 timbre"
-                // Usually you pay for every attempt.
-                examTotal = examTotal.add(pricing.getExamUnitFee());
-                examTotal = examTotal.add(pricing.getStampUnitFee());
-                desc += " + Timbre";
-            }
-
-            if (examTotal.compareTo(BigDecimal.ZERO) > 0) {
-                totalExamFees = totalExamFees.add(examTotal);
-                items.add(java.util.Map.of(
-                        "description", desc,
-                        "amount", examTotal));
-            }
-        }
-
-        BigDecimal totalAmount = pricing.getBaseCourseFee().add(totalExamFees);
+        // Delegate calculation to InvoiceCalculator Component
+        InvoiceCalculator.InvoiceCalculationResult result = invoiceCalculator.calculate(student, pricing, exams);
 
         // Calculate paid amount
         List<Payment> payments = paymentRepository.findAll().stream()
@@ -108,20 +63,14 @@ public class FinanceService {
         invoice.setBaseCourseFee(pricing.getBaseCourseFee());
         invoice.setExamUnitFee(pricing.getExamUnitFee());
         invoice.setStampUnitFee(pricing.getStampUnitFee());
-        invoice.setTotalAmount(totalAmount);
+
+        invoice.setTotalAmount(result.totalAmount());
+        invoice.setBreakdown(result.breakdown());
+
         invoice.setPaidAmount(paidAmount);
-
-        // Serialize breakdown to JSON (simple string construction for minimal deps)
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            invoice.setBreakdown(mapper.writeValueAsString(items));
-        } catch (Exception e) {
-            invoice.setBreakdown("[]");
-        }
-
         invoice.setPaymentHistory(payments);
 
-        if (paidAmount.compareTo(totalAmount) >= 0) {
+        if (paidAmount.compareTo(result.totalAmount()) >= 0) {
             invoice.setStatus(PaymentStatus.PAID);
         } else if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
             invoice.setStatus(PaymentStatus.PARTIALLY_PAID);
@@ -130,24 +79,5 @@ public class FinanceService {
         }
 
         return invoiceRepository.save(invoice);
-    }
-
-    @Transactional
-    public Payment recordPayment(Long studentId, BigDecimal amount) {
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
-        Payment payment = new Payment();
-        payment.setStudent(student);
-        payment.setAmount(amount);
-        payment.setDate(new java.util.Date());
-        payment.setStatus(PaymentStatus.PAID); // Individual payment success
-
-        Payment saved = paymentRepository.save(payment);
-
-        // Refresh Invoice
-        generateInvoice(studentId);
-
-        return saved;
     }
 }

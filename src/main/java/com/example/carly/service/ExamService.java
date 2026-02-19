@@ -1,12 +1,12 @@
 package com.example.carly.service;
 
 import com.example.carly.model.*;
-import com.example.carly.repository.*;
+import com.example.carly.repository.ExamRepository;
+import com.example.carly.repository.ExamSlotRepository;
+import com.example.carly.repository.PricingRepository;
+import com.example.carly.repository.StudentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ExamService {
@@ -17,7 +17,7 @@ public class ExamService {
     private final PricingRepository pricingRepository;
 
     public ExamService(ExamRepository examRepository, ExamSlotRepository examSlotRepository,
-            StudentRepository studentRepository, PricingRepository pricingRepository) {
+                       StudentRepository studentRepository, PricingRepository pricingRepository) {
         this.examRepository = examRepository;
         this.examSlotRepository = examSlotRepository;
         this.studentRepository = studentRepository;

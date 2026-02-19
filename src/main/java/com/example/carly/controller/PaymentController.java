@@ -16,17 +16,17 @@ import java.util.Optional;
 public class PaymentController {
 
     private final PaymentRepository paymentRepository;
-    private final com.example.carly.service.FinanceService financeService;
+    private final com.example.carly.service.PaymentService paymentService;
 
     public PaymentController(PaymentRepository paymentRepository,
-            com.example.carly.service.FinanceService financeService) {
+            com.example.carly.service.PaymentService paymentService) {
         this.paymentRepository = paymentRepository;
-        this.financeService = financeService;
+        this.paymentService = paymentService;
     }
 
     @PostMapping("/record")
     public ResponseEntity<Payment> record(@RequestParam Long studentId, @RequestParam java.math.BigDecimal amount) {
-        return ResponseEntity.ok(financeService.recordPayment(studentId, amount));
+        return ResponseEntity.ok(paymentService.recordPayment(studentId, amount));
     }
 
     @GetMapping("/{id}")

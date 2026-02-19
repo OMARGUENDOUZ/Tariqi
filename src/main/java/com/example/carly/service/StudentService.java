@@ -8,6 +8,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class StudentService {
@@ -75,5 +77,38 @@ public class StudentService {
         }
 
         return students;
+    }
+
+    public Student uploadPhotoBase64(Long id, Map<String, String> payload) {
+        Optional<Student> studentOp = studentRepository.findById(id);
+
+        if (studentOp.isPresent()) {
+            Student student = studentOp.get();
+            student.setPhotoBase64(payload.get("photoBase64"));
+            studentRepository.save(student);
+            return student;
+        }
+        return null;
+    }
+
+    public Optional<Student> findById(Long id) {
+        return studentRepository.findById(id);
+    }
+
+    public Student save(Student student) {
+        return studentRepository.save(student);
+    }
+
+    public Student save(Long id,Student student) {
+        Optional<Student> studentOpt =  findById(id);
+        return (studentOpt.isPresent()) ? studentRepository.save(student): null;
+    }
+
+    public void deleteById(Long id) {
+        studentRepository.deleteById(id);
+    }
+
+    public boolean existsById(Long id) {
+        return studentRepository.existsById(id);
     }
 }
