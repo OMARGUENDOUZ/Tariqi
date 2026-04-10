@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/ExamStudent")
+@RequestMapping("/api/v1/exam-students")
 public class ExamController {
 
     private final ExamRepository examRepository;

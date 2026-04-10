@@ -11,7 +11,7 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/Instructor")
+@RequestMapping("/api/v1/instructors")
 public class InstructorController {
     private final InstructorRepository instructorRepository;
 

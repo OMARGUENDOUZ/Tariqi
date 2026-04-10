@@ -11,7 +11,7 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/Pricing")
+@RequestMapping("/api/v1/pricing")
 public class PricingController {
     private final PricingRepository pricingRepository;
 

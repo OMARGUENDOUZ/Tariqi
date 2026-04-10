@@ -12,7 +12,7 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/Payment")
+@RequestMapping("/api/v1/payments")
 public class PaymentController {
 
     private final PaymentRepository paymentRepository;

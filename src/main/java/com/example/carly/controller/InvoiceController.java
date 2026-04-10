@@ -11,7 +11,7 @@ import java.net.URI;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/Invoice")
+@RequestMapping("/api/v1/invoices")
 public class InvoiceController {
 
     private final InvoiceRepository invoiceRepository;

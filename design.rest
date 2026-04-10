@@ -1,5 +1,5 @@
 ### Login
-POST http://localhost:8080/auth/login
+POST http://localhost:8080/api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -8,16 +8,42 @@ Content-Type: application/json
 }
 
 ### Logout
-POST http://localhost:8080/auth/logout
+POST http://localhost:8080/api/v1/auth/logout
 
 ### Find student by id
-GET http://localhost:8080/Student/1
+GET http://localhost:8080/api/v1/students/1
 
 ### Search students
-GET http://localhost:8080/Student
+GET http://localhost:8080/api/v1/students
+
+### Create student
+POST http://localhost:8080/api/v1/students
+Content-Type: application/json
+
+{
+  "firstName": "Omar",
+  "lastName": "Guendouz"
+}
+
+### Update student
+PUT http://localhost:8080/api/v1/students/1
+Content-Type: application/json
+
+{
+  "firstName": "Omar"
+}
+
+### Delete student
+DELETE http://localhost:8080/api/v1/students/1
+
+### Find instructor by id
+GET http://localhost:8080/api/v1/instructors/1
+
+### Get all instructors
+GET http://localhost:8080/api/v1/instructors
 
 ### Create instructor
-POST http://localhost:8080/Instructor
+POST http://localhost:8080/api/v1/instructors
 Content-Type: application/json
 
 {
@@ -25,11 +51,75 @@ Content-Type: application/json
   "lastName": "Bennani"
 }
 
+### Update instructor
+PUT http://localhost:8080/api/v1/instructors/1
+Content-Type: application/json
+
+{
+  "firstName": "Ali"
+}
+
+### Delete instructor
+DELETE http://localhost:8080/api/v1/instructors/1
+
 ### Find exam student by id
-GET http://localhost:8080/ExamStudent/1
+GET http://localhost:8080/api/v1/exam-students/1
 
-### Filter exam students by status
-GET http://localhost:8080/ExamStudent?status=SCHEDULED
+### Filter by status
+GET http://localhost:8080/api/v1/exam-students?status=SCHEDULED
 
-### Find active exam slots
-GET http://localhost:8080/ExamSlot?active=true
+### Filter by student
+GET http://localhost:8080/api/v1/exam-students?studentId=1
+
+### Filter by exam slot
+GET http://localhost:8080/api/v1/exam-students?examSlotId=1
+
+### Register student for exam
+POST http://localhost:8080/api/v1/exam-students
+Content-Type: application/json
+
+{
+  "studentId": 1,
+  "examSlotId": 2,
+  "category": "B"
+}
+
+### Update exam student result
+PUT http://localhost:8080/api/v1/exam-students/1
+Content-Type: application/json
+
+{
+  "result": "PASSED",
+  "status": "COMPLETED"
+}
+
+### Delete exam student
+DELETE http://localhost:8080/api/v1/exam-students/1
+
+### Get all exam slots
+GET http://localhost:8080/api/v1/exam-slots
+
+### Get active exam slots
+GET http://localhost:8080/api/v1/exam-slots?active=true
+
+### Find exam slot by id
+GET http://localhost:8080/api/v1/exam-slots/1
+
+### Create exam slot
+POST http://localhost:8080/api/v1/exam-slots
+Content-Type: application/json
+
+{
+  "active": true
+}
+
+### Update exam slot
+PUT http://localhost:8080/api/v1/exam-slots/1
+Content-Type: application/json
+
+{
+  "active": false
+}
+
+### Delete exam slot
+DELETE http://localhost:8080/api/v1/exam-slots/1
