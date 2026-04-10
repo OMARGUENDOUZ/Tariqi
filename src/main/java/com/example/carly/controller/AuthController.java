@@ -4,6 +4,7 @@ import com.example.carly.dto.AuthResponse;
 import com.example.carly.dto.LoginRequest;
 import com.example.carly.model.User;
 import com.example.carly.repository.UserRepository;
+import com.example.carly.security.JwtService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,9 +19,11 @@ import java.util.Optional;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
-    public AuthController(UserRepository userRepository) {
+    public AuthController(UserRepository userRepository, JwtService jwtService) {
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
@@ -29,10 +32,8 @@ public class AuthController {
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-            // Simple check for now (as requested for the desktop migration)
             if (user.getPassword().equals(loginRequest.getPassword())) {
-                // Return a dummy token for the frontend
-                AuthResponse response = new AuthResponse("dummy-jwt-token-for-local-auth", user);
+                AuthResponse response = new AuthResponse(jwtService.generateToken(user), user);
                 return ResponseEntity.ok(response);
             }
         }
