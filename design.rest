@@ -1,20 +1,35 @@
-@site=https://restdesign.dev
-@local=http://localhost:8080
+### Login
+POST http://localhost:8080/auth/login
+Content-Type: application/json
 
-GET {{site}}/api/customers/8
-Accept: application/json
+{
+  "email": "test@example.com",
+  "password": "password"
+}
 
-###
+### Logout
+POST http://localhost:8080/auth/logout
 
-GET {{site}}/api/customers
-Accept: application/json
-Conte7nt-Type: application/json
+### Find student by id
+GET http://localhost:8080/Student/1
 
-###
+### Search students
+GET http://localhost:8080/Student
 
-DELETE {{site}}/api/customers/8
-Accept: application/json
+### Create instructor
+POST http://localhost:8080/Instructor
+Content-Type: application/json
 
-###
+{
+  "firstName": "Ali",
+  "lastName": "Bennani"
+}
 
-GET {{local}}/Student/1
+### Find exam student by id
+GET http://localhost:8080/ExamStudent/1
+
+### Filter exam students by status
+GET http://localhost:8080/ExamStudent?status=SCHEDULED
+
+### Find active exam slots
+GET http://localhost:8080/ExamSlot?active=true
