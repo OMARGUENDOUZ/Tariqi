@@ -21,14 +21,12 @@ import java.util.Optional;
 @RequestMapping("/api/v1/payments")
 public class PaymentController {
 
-    private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final PaymentMapper paymentMapper;
 
     public PaymentController(PaymentRepository paymentRepository,
                              PaymentService paymentService,
                              PaymentMapper paymentMapper) {
-        this.paymentRepository = paymentRepository;
         this.paymentService = paymentService;
         this.paymentMapper = paymentMapper;
     }
@@ -43,7 +41,7 @@ public class PaymentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<PaymentResponse> findById(@PathVariable long id) {
-        return paymentRepository.findById(id)
+        return paymentService.findById(id)
                 .map(paymentMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -51,7 +49,7 @@ public class PaymentController {
 
     @GetMapping
     public ResponseEntity<List<PaymentResponse>> findAll() {
-        List<PaymentResponse> payments = paymentRepository.findAll()
+        List<PaymentResponse> payments = paymentService.findAll()
                 .stream()
                 .map(paymentMapper::toResponse)
                 .toList();
@@ -62,7 +60,7 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> save(
             @RequestBody @Valid PaymentRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Payment payment = paymentRepository.save(paymentMapper.toEntity(body));
+        Payment payment = paymentService.save(paymentMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/payments/{id}")
                 .buildAndExpand(payment.getId())
@@ -74,19 +72,19 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> update(
             @PathVariable long id,
             @RequestBody @Valid PaymentRequest body) {
-        Optional<Payment> existing = paymentRepository.findById(id);
+        Optional<Payment> existing = paymentService.findById(id);
         if (existing.isPresent()) {
             Payment toUpdate = paymentMapper.toEntity(body);
             toUpdate.setId(id);
-            return ResponseEntity.ok(paymentMapper.toResponse(paymentRepository.save(toUpdate)));
+            return ResponseEntity.ok(paymentMapper.toResponse(paymentService.save(toUpdate)));
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (paymentRepository.existsById(id)) {
-            paymentRepository.deleteById(id);
+        if (paymentService.findById(id).isPresent()) {
+            paymentService.deleteById(id);
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

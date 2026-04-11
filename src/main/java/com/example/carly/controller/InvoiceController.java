@@ -6,6 +6,7 @@ import com.example.carly.mapper.InvoiceMapper;
 import com.example.carly.model.Invoice;
 import com.example.carly.repository.InvoiceRepository;
 import com.example.carly.service.FinanceService;
+import com.example.carly.service.InvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,14 +21,14 @@ import java.util.Optional;
 @RequestMapping("/api/v1/invoices")
 public class InvoiceController {
 
-    private final InvoiceRepository invoiceRepository;
+    private final InvoiceService invoiceService;
     private final FinanceService financeService;
     private final InvoiceMapper invoiceMapper;
 
-    public InvoiceController(InvoiceRepository invoiceRepository,
+    public InvoiceController(InvoiceService invoiceRepository,
                              FinanceService financeService,
                              InvoiceMapper invoiceMapper) {
-        this.invoiceRepository = invoiceRepository;
+        this.invoiceService = invoiceRepository;
         this.financeService = financeService;
         this.invoiceMapper = invoiceMapper;
     }
@@ -40,7 +41,7 @@ public class InvoiceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<InvoiceResponse> findById(@PathVariable long id) {
-        return invoiceRepository.findById(id)
+        return invoiceService.findById(id)
                 .map(invoiceMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -48,7 +49,7 @@ public class InvoiceController {
 
     @GetMapping
     public ResponseEntity<List<InvoiceResponse>> findAll() {
-        List<InvoiceResponse> invoices = invoiceRepository.findAll()
+        List<InvoiceResponse> invoices = invoiceService.findAll()
                 .stream()
                 .map(invoiceMapper::toResponse)
                 .toList();
@@ -59,7 +60,7 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> save(
             @RequestBody @Valid InvoiceRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Invoice invoice = invoiceRepository.save(invoiceMapper.toEntity(body));
+        Invoice invoice = invoiceService.save(invoiceMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/invoices/{id}")
                 .buildAndExpand(invoice.getId())
@@ -71,19 +72,19 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> update(
             @PathVariable long id,
             @RequestBody @Valid InvoiceRequest body) {
-        Optional<Invoice> existing = invoiceRepository.findById(id);
+        Optional<Invoice> existing = invoiceService.findById(id);
         if (existing.isPresent()) {
             Invoice toUpdate = invoiceMapper.toEntity(body);
             toUpdate.setId(id);
-            return ResponseEntity.ok(invoiceMapper.toResponse(invoiceRepository.save(toUpdate)));
+            return ResponseEntity.ok(invoiceMapper.toResponse(invoiceService.save(toUpdate)));
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (invoiceRepository.existsById(id)) {
-            invoiceRepository.deleteById(id);
+        if (invoiceService.findById(id).isPresent()) {
+            invoiceService.deleteById(id);
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

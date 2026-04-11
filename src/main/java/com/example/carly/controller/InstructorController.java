@@ -5,6 +5,7 @@ import com.example.carly.dto.instructor.InstructorResponse;
 import com.example.carly.mapper.InstructorMapper;
 import com.example.carly.model.Instructor;
 import com.example.carly.repository.InstructorRepository;
+import com.example.carly.service.InstructorService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,18 +20,18 @@ import java.util.Optional;
 @RequestMapping("/api/v1/instructors")
 public class InstructorController {
 
-    private final InstructorRepository instructorRepository;
+    private final InstructorService instructorService;
     private final InstructorMapper instructorMapper;
 
-    public InstructorController(InstructorRepository instructorRepository,
+    public InstructorController(InstructorService instructorRepository,
                                 InstructorMapper instructorMapper) {
-        this.instructorRepository = instructorRepository;
+        this.instructorService = instructorRepository;
         this.instructorMapper = instructorMapper;
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<InstructorResponse> findById(@PathVariable long id) {
-        return instructorRepository.findById(id)
+        return instructorService.findById(id)
                 .map(instructorMapper::toResponse)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -38,7 +39,7 @@ public class InstructorController {
 
     @GetMapping
     public ResponseEntity<List<InstructorResponse>> findAll() {
-        List<InstructorResponse> instructors = instructorRepository.findAll()
+        List<InstructorResponse> instructors = instructorService.findAll()
                 .stream()
                 .map(instructorMapper::toResponse)
                 .toList();
@@ -49,7 +50,7 @@ public class InstructorController {
     public ResponseEntity<InstructorResponse> save(
             @RequestBody @Valid InstructorRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Instructor instructor = instructorRepository.save(instructorMapper.toEntity(body));
+        Instructor instructor = instructorService.save(instructorMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/instructors/{id}")
                 .buildAndExpand(instructor.getId())
@@ -61,12 +62,12 @@ public class InstructorController {
     public ResponseEntity<InstructorResponse> update(
             @PathVariable long id,
             @RequestBody @Valid InstructorRequest body) {
-        Optional<Instructor> existing = instructorRepository.findById(id);
+        Optional<Instructor> existing = instructorService.findById(id);
 
         if (existing.isPresent()) {
             Instructor toUpdate = instructorMapper.toEntity(body);
             toUpdate.setId(id);
-            Instructor updated = instructorRepository.save(toUpdate);
+            Instructor updated = instructorService.save(toUpdate);
             return ResponseEntity.ok(instructorMapper.toResponse(updated));
         }
 
@@ -75,8 +76,8 @@ public class InstructorController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (instructorRepository.existsById(id)) {
-            instructorRepository.deleteById(id);
+        if (instructorService.findById(id).isPresent()) {
+            instructorService.deleteById(id);
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

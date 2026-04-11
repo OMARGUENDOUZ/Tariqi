@@ -5,46 +5,61 @@ import com.example.carly.model.PaymentStatus;
 import com.example.carly.model.Student;
 import com.example.carly.repository.PaymentRepository;
 import com.example.carly.repository.StudentRepository;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final StudentRepository studentRepository;
-    private final FinanceService financeService;
 
-    // Use @Lazy to avoid circular dependency if FinanceService also injects
-    // PaymentService (unlikely but safe)
     public PaymentService(PaymentRepository paymentRepository,
-            StudentRepository studentRepository,
-            @Lazy FinanceService financeService) {
+                          StudentRepository studentRepository) {
         this.paymentRepository = paymentRepository;
         this.studentRepository = studentRepository;
-        this.financeService = financeService;
     }
 
-    @Transactional
     public Payment recordPayment(Long studentId, BigDecimal amount) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-
+                .orElseThrow(() -> new IllegalArgumentException("Student not found: " + studentId));
         Payment payment = new Payment();
         payment.setStudent(student);
         payment.setAmount(amount);
-        payment.setDate(new Date());
         payment.setStatus(PaymentStatus.PAID);
+        payment.setDate(new Date());
+        return paymentRepository.save(payment);
+    }
 
-        Payment saved = paymentRepository.save(payment);
+    public List<Payment> findAll() {
+        return paymentRepository.findAll();
+    }
 
-        // Trigger invoice update
-        financeService.generateInvoice(studentId);
+    public Optional<Payment> findById(long id) {
+        return paymentRepository.findById(id);
+    }
 
-        return saved;
+    public Payment save(Payment payment) {
+        return paymentRepository.save(payment);
+    }
+
+    public Optional<Payment> update(long id, Payment payment) {
+        if (!paymentRepository.existsById(id)) {
+            return Optional.empty();
+        }
+        payment.setId(id);
+        return Optional.of(paymentRepository.save(payment));
+    }
+
+    public boolean deleteById(long id) {
+        if (!paymentRepository.existsById(id)) {
+            return false;
+        }
+        paymentRepository.deleteById(id);
+        return true;
     }
 }
