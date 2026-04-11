@@ -8,7 +8,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -79,12 +78,12 @@ public class StudentService {
         return students;
     }
 
-    public Student uploadPhotoBase64(Long id, Map<String, String> payload) {
+    public Student uploadPhotoBase64(Long id, String payload) {
         Optional<Student> studentOp = studentRepository.findById(id);
 
         if (studentOp.isPresent()) {
             Student student = studentOp.get();
-            student.setPhotoBase64(payload.get("photoBase64"));
+            student.setPhotoBase64(payload);
             studentRepository.save(student);
             return student;
         }

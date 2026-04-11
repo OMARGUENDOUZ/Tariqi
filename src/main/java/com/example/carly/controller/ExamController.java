@@ -1,9 +1,11 @@
 package com.example.carly.controller;
 
-import com.example.carly.model.ExamCategory;
-import com.example.carly.model.ExamResult;
-import com.example.carly.model.ExamStudent;
+import com.example.carly.dto.examstudent.ExamStudentCreateRequest;
+import com.example.carly.dto.examstudent.ExamStudentResponse;
+import com.example.carly.dto.examstudent.ExamStudentUpdateRequest;
+import com.example.carly.mapper.ExamStudentMapper;
 import com.example.carly.model.ExamStatus;
+import com.example.carly.model.ExamStudent;
 import com.example.carly.repository.ExamRepository;
 import com.example.carly.service.ExamService;
 import org.springframework.http.HttpStatus;
@@ -21,23 +23,30 @@ public class ExamController {
 
     private final ExamRepository examRepository;
     private final ExamService examService;
+    private final ExamStudentMapper examStudentMapper;
 
-    public ExamController(ExamRepository examRepository, ExamService examService) {
+    public ExamController(ExamRepository examRepository,
+                          ExamService examService,
+                          ExamStudentMapper examStudentMapper) {
         this.examRepository = examRepository;
         this.examService = examService;
+        this.examStudentMapper = examStudentMapper;
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ExamStudent> findById(@PathVariable long id) {
-        Optional<ExamStudent> exam = examRepository.findById(id);
-
-        return exam.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<ExamStudentResponse> findById(@PathVariable long id) {
+        return examRepository.findById(id)
+                .map(examStudentMapper::toResponse)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<ExamStudent>> findAll(@RequestParam(required = false) Long studentId,
+    public ResponseEntity<List<ExamStudentResponse>> findAll(
+            @RequestParam(required = false) Long studentId,
             @RequestParam(required = false) ExamStatus status,
             @RequestParam(required = false) Long examSlotId) {
+
         List<ExamStudent> examStudents;
 
         if (examSlotId != null) {
@@ -46,49 +55,57 @@ public class ExamController {
             examStudents = examRepository.findAll().stream().toList();
         } else if (studentId != null && status == null) {
             examStudents = examRepository.findByStudentId(studentId);
-        } else if (studentId == null && status != null) {
+        } else if (studentId == null) {
             examStudents = examRepository.findByStatus(status);
         } else {
             examStudents = examRepository.findByStudentIdAndStatus(studentId, status);
         }
-        return !examStudents.isEmpty() ? ResponseEntity.ok(examStudents) : ResponseEntity.ok(List.of());
+
+        return ResponseEntity.ok(
+                examStudents.stream()
+                        .map(examStudentMapper::toResponse)
+                        .toList()
+        );
     }
 
     @PostMapping
-    public ResponseEntity<ExamStudent> save(@RequestBody ExamStudent body, UriComponentsBuilder uriComponentsBuilder) {
+    public ResponseEntity<ExamStudentResponse> save(
+            @RequestBody ExamStudentCreateRequest body,
+            UriComponentsBuilder uriComponentsBuilder) {
         try {
-            ExamStudent examStudent = examService.registerStudentForExam(body.getStudentId(), body.getExamSlotId(),
-                    body.getCategory());
-            URI location = uriComponentsBuilder.path("/ExamStudent/{id}").buildAndExpand(examStudent.getId()).toUri();
-            return ResponseEntity.created(location).body(examStudent);
+            ExamStudent examStudent = examService.registerStudentForExam(
+                    body.studentId(),
+                    body.examSlotId(),
+                    body.category()
+            );
+            URI location = uriComponentsBuilder
+                    .path("/api/v1/exam-students/{id}")
+                    .buildAndExpand(examStudent.getId())
+                    .toUri();
+            return ResponseEntity.created(location).body(examStudentMapper.toResponse(examStudent));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build(); // Simplify error handling
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ExamStudent> update(@PathVariable long id, @RequestBody ExamStudent body) {
+    public ResponseEntity<ExamStudentResponse> update(
+            @PathVariable long id,
+            @RequestBody ExamStudentUpdateRequest body) {
         Optional<ExamStudent> existingWrapper = examRepository.findById(id);
 
         if (existingWrapper.isPresent()) {
             ExamStudent existing = existingWrapper.get();
-            if (body.getResult() != null)
-                existing.setResult(body.getResult());
-            if (body.getStatus() != null)
-                existing.setStatus(body.getStatus());
-            // Update other fields if necessary
-            if (body.getCategory() != null)
-                existing.setCategory(body.getCategory());
-
+            examStudentMapper.updateEntity(existing, body);
             ExamStudent updated = examRepository.save(existing);
-            return ResponseEntity.ok(updated);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.ok(examStudentMapper.toResponse(updated));
         }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    @DeleteMapping("{id}")
-    public ResponseEntity<ExamStudent> delete(@PathVariable long id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable long id) {
         if (examRepository.existsById(id)) {
             examRepository.deleteById(id);
             return ResponseEntity.noContent().build();

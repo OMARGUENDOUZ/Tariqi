@@ -636,3 +636,11 @@ ExamResult : (valeurs à confirmer)
 - [ ] `POST /ExamSlot` crée un créneau
 - [ ] `PUT /ExamSlot/{id}` met à jour un créneau
 - [ ] `DELETE /ExamSlot/{id}` supprime un créneau
+
+## Roadmap post-refactor
+- [ ] Introduire une entité Organization alignée sur FHIR Organization
+- [ ] Lier User à Organization
+- [ ] Lier Student, Instructor, ExamSlot, Invoice, Payment à Organization
+- [ ] Filtrer toutes les requêtes métier par organizationId
+- [ ] Ajouter organizationId dans le JWT
+- [ ] Gérer les rôles au sein d'une organization
