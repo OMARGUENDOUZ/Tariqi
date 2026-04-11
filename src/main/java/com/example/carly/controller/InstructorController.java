@@ -5,6 +5,7 @@ import com.example.carly.dto.instructor.InstructorResponse;
 import com.example.carly.mapper.InstructorMapper;
 import com.example.carly.model.Instructor;
 import com.example.carly.repository.InstructorRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +47,7 @@ public class InstructorController {
 
     @PostMapping
     public ResponseEntity<InstructorResponse> save(
-            @RequestBody InstructorRequest body,
+            @RequestBody @Valid InstructorRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
         Instructor instructor = instructorRepository.save(instructorMapper.toEntity(body));
         URI location = uriComponentsBuilder
@@ -59,12 +60,12 @@ public class InstructorController {
     @PutMapping("/{id}")
     public ResponseEntity<InstructorResponse> update(
             @PathVariable long id,
-            @RequestBody InstructorRequest body) {
+            @RequestBody @Valid InstructorRequest body) {
         Optional<Instructor> existing = instructorRepository.findById(id);
 
         if (existing.isPresent()) {
             Instructor toUpdate = instructorMapper.toEntity(body);
-            toUpdate.setId(id); // ✅ force l'ID pour éviter une création accidentelle
+            toUpdate.setId(id);
             Instructor updated = instructorRepository.save(toUpdate);
             return ResponseEntity.ok(instructorMapper.toResponse(updated));
         }

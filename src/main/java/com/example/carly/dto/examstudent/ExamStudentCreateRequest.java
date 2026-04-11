@@ -1,10 +1,11 @@
 package com.example.carly.dto.examstudent;
 
 import com.example.carly.model.ExamCategory;
+import jakarta.validation.constraints.NotNull;
 
 public record ExamStudentCreateRequest(
-        Long studentId,
-        Long examSlotId,
-        ExamCategory category
+        @NotNull Long studentId,
+        @NotNull Long examSlotId,
+        @NotNull ExamCategory category
 ) {
 }

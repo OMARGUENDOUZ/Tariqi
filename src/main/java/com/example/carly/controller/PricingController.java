@@ -5,6 +5,7 @@ import com.example.carly.dto.pricing.PricingResponse;
 import com.example.carly.mapper.PricingMapper;
 import com.example.carly.model.Pricing;
 import com.example.carly.repository.PricingRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +46,7 @@ public class PricingController {
 
     @PostMapping
     public ResponseEntity<PricingResponse> save(
-            @RequestBody PricingRequest body,
+            @RequestBody @Valid PricingRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
         Pricing pricing = pricingRepository.save(pricingMapper.toEntity(body));
         URI location = uriComponentsBuilder
@@ -58,7 +59,7 @@ public class PricingController {
     @PutMapping("/{id}")
     public ResponseEntity<PricingResponse> update(
             @PathVariable long id,
-            @RequestBody PricingRequest body) {
+            @RequestBody @Valid PricingRequest body) {
         Optional<Pricing> existing = pricingRepository.findById(id);
         if (existing.isPresent()) {
             Pricing toUpdate = pricingMapper.toEntity(body);

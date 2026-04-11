@@ -6,6 +6,7 @@ import com.example.carly.mapper.InvoiceMapper;
 import com.example.carly.model.Invoice;
 import com.example.carly.repository.InvoiceRepository;
 import com.example.carly.service.FinanceService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,7 +57,7 @@ public class InvoiceController {
 
     @PostMapping
     public ResponseEntity<InvoiceResponse> save(
-            @RequestBody InvoiceRequest body,
+            @RequestBody @Valid InvoiceRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
         Invoice invoice = invoiceRepository.save(invoiceMapper.toEntity(body));
         URI location = uriComponentsBuilder
@@ -69,7 +70,7 @@ public class InvoiceController {
     @PutMapping("/{id}")
     public ResponseEntity<InvoiceResponse> update(
             @PathVariable long id,
-            @RequestBody InvoiceRequest body) {
+            @RequestBody @Valid InvoiceRequest body) {
         Optional<Invoice> existing = invoiceRepository.findById(id);
         if (existing.isPresent()) {
             Invoice toUpdate = invoiceMapper.toEntity(body);

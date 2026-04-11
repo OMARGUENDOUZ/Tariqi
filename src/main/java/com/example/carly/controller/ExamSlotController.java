@@ -5,6 +5,7 @@ import com.example.carly.dto.examslot.ExamSlotResponse;
 import com.example.carly.mapper.ExamSlotMapper;
 import com.example.carly.model.ExamSlot;
 import com.example.carly.repository.ExamSlotRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -52,7 +53,7 @@ public class ExamSlotController {
 
     @PostMapping
     public ResponseEntity<ExamSlotResponse> save(
-            @RequestBody ExamSlotRequest body,
+            @RequestBody @Valid ExamSlotRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
 
         ExamSlot saved = examSlotRepository.save(examSlotMapper.toEntity(body));
@@ -66,13 +67,13 @@ public class ExamSlotController {
     @PutMapping("/{id}")
     public ResponseEntity<ExamSlotResponse> update(
             @PathVariable long id,
-            @RequestBody ExamSlotRequest body) {
+            @RequestBody @Valid ExamSlotRequest body) {
 
         Optional<ExamSlot> existing = examSlotRepository.findById(id);
 
         if (existing.isPresent()) {
             ExamSlot toUpdate = examSlotMapper.toEntity(body);
-            toUpdate.setId(id); // ✅ force l'ID pour éviter une création accidentelle
+            toUpdate.setId(id);
             ExamSlot updated = examSlotRepository.save(toUpdate);
             return ResponseEntity.ok(examSlotMapper.toResponse(updated));
         }

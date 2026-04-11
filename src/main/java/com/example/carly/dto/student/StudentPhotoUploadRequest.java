@@ -1,6 +1,8 @@
 package com.example.carly.dto.student;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record StudentPhotoUploadRequest(
-        String photoBase64
+        @NotBlank String photoBase64
 ) {
 }

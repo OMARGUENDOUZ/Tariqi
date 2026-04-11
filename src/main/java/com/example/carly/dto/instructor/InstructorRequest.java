@@ -1,13 +1,15 @@
 package com.example.carly.dto.instructor;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.util.Date;
 
 public record InstructorRequest(
-        String firstName,
-        String lastName,
+        @NotNull String firstName,
+        @NotNull String lastName,
         Date birthDate,
         String placeOfBirth,
         String address,
-        String phoneNumber
+        @NotNull String phoneNumber
 ) {
 }

@@ -7,6 +7,7 @@ import com.example.carly.dto.student.StudentResponse;
 import com.example.carly.mapper.StudentMapper;
 import com.example.carly.model.Student;
 import com.example.carly.service.StudentService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,7 +47,7 @@ public class StudentController {
     @PostMapping("/{id}/photo")
     public ResponseEntity<StudentResponse> uploadPhotoBase64(
             @PathVariable long id,
-            @RequestBody StudentPhotoUploadRequest payload) {
+            @RequestBody @Valid StudentPhotoUploadRequest payload) {
         Student student = studentService.uploadPhotoBase64(id, payload.photoBase64());
         return (student != null)
                 ? ResponseEntity.ok(studentMapper.toResponse(student))
@@ -55,7 +56,7 @@ public class StudentController {
 
     @PostMapping
     public ResponseEntity<StudentResponse> save(
-            @RequestBody StudentRequest body,
+            @RequestBody @Valid StudentRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
         Student student = studentService.save(studentMapper.toEntity(body));
         URI location = uriComponentsBuilder
@@ -68,7 +69,7 @@ public class StudentController {
     @PutMapping("/{id}")
     public ResponseEntity<StudentResponse> update(
             @PathVariable long id,
-            @RequestBody StudentRequest body) {
+            @RequestBody @Valid StudentRequest body) {
         Student student = studentService.save(id, studentMapper.toEntity(body));
         return (student != null)
                 ? ResponseEntity.ok(studentMapper.toResponse(student))

@@ -6,6 +6,7 @@ import com.example.carly.mapper.PaymentMapper;
 import com.example.carly.model.Payment;
 import com.example.carly.repository.PaymentRepository;
 import com.example.carly.service.PaymentService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -59,7 +60,7 @@ public class PaymentController {
 
     @PostMapping
     public ResponseEntity<PaymentResponse> save(
-            @RequestBody PaymentRequest body,
+            @RequestBody @Valid PaymentRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
         Payment payment = paymentRepository.save(paymentMapper.toEntity(body));
         URI location = uriComponentsBuilder
@@ -72,7 +73,7 @@ public class PaymentController {
     @PutMapping("/{id}")
     public ResponseEntity<PaymentResponse> update(
             @PathVariable long id,
-            @RequestBody PaymentRequest body) {
+            @RequestBody @Valid PaymentRequest body) {
         Optional<Payment> existing = paymentRepository.findById(id);
         if (existing.isPresent()) {
             Payment toUpdate = paymentMapper.toEntity(body);

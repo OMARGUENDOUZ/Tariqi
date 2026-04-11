@@ -8,6 +8,7 @@ import com.example.carly.model.ExamStatus;
 import com.example.carly.model.ExamStudent;
 import com.example.carly.repository.ExamRepository;
 import com.example.carly.service.ExamService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -70,7 +71,7 @@ public class ExamController {
 
     @PostMapping
     public ResponseEntity<ExamStudentResponse> save(
-            @RequestBody ExamStudentCreateRequest body,
+            @RequestBody @Valid ExamStudentCreateRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
         try {
             ExamStudent examStudent = examService.registerStudentForExam(
@@ -91,7 +92,7 @@ public class ExamController {
     @PutMapping("/{id}")
     public ResponseEntity<ExamStudentResponse> update(
             @PathVariable long id,
-            @RequestBody ExamStudentUpdateRequest body) {
+            @RequestBody @Valid ExamStudentUpdateRequest body) {
         Optional<ExamStudent> existingWrapper = examRepository.findById(id);
 
         if (existingWrapper.isPresent()) {

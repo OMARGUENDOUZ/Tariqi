@@ -6,6 +6,7 @@ import com.example.carly.mapper.UserMapper;
 import com.example.carly.model.User;
 import com.example.carly.repository.UserRepository;
 import com.example.carly.security.JwtService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,7 +34,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<AuthResponse> login(@RequestBody @Valid LoginRequest loginRequest) {
         Optional<User> userOptional = userRepository.findByEmail(loginRequest.email());
 
         if (userOptional.isPresent()) {
