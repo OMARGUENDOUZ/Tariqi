@@ -2,12 +2,8 @@ package com.example.carly.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
-import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Data

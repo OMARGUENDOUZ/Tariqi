@@ -1,70 +1,90 @@
 package com.example.carly.controller;
 
+import com.example.carly.dto.payment.PaymentRequest;
+import com.example.carly.dto.payment.PaymentResponse;
+import com.example.carly.mapper.PaymentMapper;
 import com.example.carly.model.Payment;
 import com.example.carly.repository.PaymentRepository;
-import jakarta.persistence.Id;
+import com.example.carly.service.PaymentService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.math.BigDecimal;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/Payment")
+@RequestMapping("/api/v1/payments")
 public class PaymentController {
 
-    private final PaymentRepository paymentRepository;
-    private final com.example.carly.service.PaymentService paymentService;
+    private final PaymentService paymentService;
+    private final PaymentMapper paymentMapper;
 
     public PaymentController(PaymentRepository paymentRepository,
-            com.example.carly.service.PaymentService paymentService) {
-        this.paymentRepository = paymentRepository;
+                             PaymentService paymentService,
+                             PaymentMapper paymentMapper) {
         this.paymentService = paymentService;
+        this.paymentMapper = paymentMapper;
     }
 
     @PostMapping("/record")
-    public ResponseEntity<Payment> record(@RequestParam Long studentId, @RequestParam java.math.BigDecimal amount) {
-        return ResponseEntity.ok(paymentService.recordPayment(studentId, amount));
+    public ResponseEntity<PaymentResponse> recordPayment(
+            @RequestParam Long studentId,
+            @RequestParam BigDecimal amount) {
+        Payment payment = paymentService.recordPayment(studentId, amount);
+        return ResponseEntity.ok(paymentMapper.toResponse(payment));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Payment> findById(@PathVariable long id) {
-        Optional<Payment> payment = paymentRepository.findById(id);
-
-        return payment.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<PaymentResponse> findById(@PathVariable long id) {
+        return paymentService.findById(id)
+                .map(paymentMapper::toResponse)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public Iterable<Payment> findAll() {
-        Iterable<Payment> students = paymentRepository.findAll();
-        return ResponseEntity.ok(students).getBody();
+    public ResponseEntity<List<PaymentResponse>> findAll() {
+        List<PaymentResponse> payments = paymentService.findAll()
+                .stream()
+                .map(paymentMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(payments);
     }
 
     @PostMapping
-    public Payment save(@RequestBody Payment body, UriComponentsBuilder uriComponentsBuilder) {
-        Payment payment = paymentRepository.save(body);
-        URI location = uriComponentsBuilder.path("/Payment/{id}").buildAndExpand(payment.getId()).toUri();
-        return ResponseEntity.created(location).body(payment).getBody();
+    public ResponseEntity<PaymentResponse> save(
+            @RequestBody @Valid PaymentRequest body,
+            UriComponentsBuilder uriComponentsBuilder) {
+        Payment payment = paymentService.save(paymentMapper.toEntity(body));
+        URI location = uriComponentsBuilder
+                .path("/api/v1/payments/{id}")
+                .buildAndExpand(payment.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(paymentMapper.toResponse(payment));
     }
 
-    @PutMapping("{id}")
-    public ResponseEntity<Payment> update(@PathVariable long id, @RequestBody Payment body) {
-        Optional<Payment> payment = paymentRepository.findById(id);
-
-        if (payment.isPresent()) {
-            Payment updated = paymentRepository.save(body);
-            return ResponseEntity.ok(updated);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    @PutMapping("/{id}")
+    public ResponseEntity<PaymentResponse> update(
+            @PathVariable long id,
+            @RequestBody @Valid PaymentRequest body) {
+        Optional<Payment> existing = paymentService.findById(id);
+        if (existing.isPresent()) {
+            Payment toUpdate = paymentMapper.toEntity(body);
+            toUpdate.setId(id);
+            return ResponseEntity.ok(paymentMapper.toResponse(paymentService.save(toUpdate)));
         }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    @DeleteMapping("{id}")
-    public ResponseEntity<Payment> delete(@PathVariable long id) {
-        if (paymentRepository.existsById(id)) {
-            paymentRepository.deleteById(id);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable long id) {
+        if (paymentService.findById(id).isPresent()) {
+            paymentService.deleteById(id);
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

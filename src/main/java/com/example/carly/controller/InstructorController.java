@@ -1,61 +1,83 @@
 package com.example.carly.controller;
 
+import com.example.carly.dto.instructor.InstructorRequest;
+import com.example.carly.dto.instructor.InstructorResponse;
+import com.example.carly.mapper.InstructorMapper;
 import com.example.carly.model.Instructor;
 import com.example.carly.repository.InstructorRepository;
+import com.example.carly.service.InstructorService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/Instructor")
+@RequestMapping("/api/v1/instructors")
 public class InstructorController {
-    private final InstructorRepository instructorRepository;
 
-    public InstructorController(InstructorRepository instructorRepository) {
-        this.instructorRepository = instructorRepository;
+    private final InstructorService instructorService;
+    private final InstructorMapper instructorMapper;
+
+    public InstructorController(InstructorService instructorRepository,
+                                InstructorMapper instructorMapper) {
+        this.instructorService = instructorRepository;
+        this.instructorMapper = instructorMapper;
     }
 
-
     @GetMapping("/{id}")
-    public ResponseEntity<Instructor> findById(@PathVariable long id) {
-        Optional<Instructor> instructor = instructorRepository.findById(id);
-
-        return instructor.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<InstructorResponse> findById(@PathVariable long id) {
+        return instructorService.findById(id)
+                .map(instructorMapper::toResponse)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public Iterable<Instructor> findAll() {
-        Iterable<Instructor> students = instructorRepository.findAll();
-        return ResponseEntity.ok(students).getBody();
+    public ResponseEntity<List<InstructorResponse>> findAll() {
+        List<InstructorResponse> instructors = instructorService.findAll()
+                .stream()
+                .map(instructorMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(instructors);
     }
 
     @PostMapping
-    public Instructor save(@RequestBody Instructor body, UriComponentsBuilder uriComponentsBuilder) {
-        Instructor instructor = instructorRepository.save(body);
-        URI location = uriComponentsBuilder.path("/Instructor/{id}").buildAndExpand(instructor.getId()).toUri();
-        return ResponseEntity.created(location).body(instructor).getBody();
+    public ResponseEntity<InstructorResponse> save(
+            @RequestBody @Valid InstructorRequest body,
+            UriComponentsBuilder uriComponentsBuilder) {
+        Instructor instructor = instructorService.save(instructorMapper.toEntity(body));
+        URI location = uriComponentsBuilder
+                .path("/api/v1/instructors/{id}")
+                .buildAndExpand(instructor.getId())
+                .toUri();
+        return ResponseEntity.created(location).body(instructorMapper.toResponse(instructor));
     }
 
-    @PutMapping("{id}")
-    public ResponseEntity<Instructor> update(@PathVariable long id, @RequestBody Instructor body) {
-        Optional<Instructor> instructor = instructorRepository.findById(id);
+    @PutMapping("/{id}")
+    public ResponseEntity<InstructorResponse> update(
+            @PathVariable long id,
+            @RequestBody @Valid InstructorRequest body) {
+        Optional<Instructor> existing = instructorService.findById(id);
 
-        if(instructor.isPresent()) {
-            Instructor updated = instructorRepository.save(body);
-            return ResponseEntity.ok(updated);
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        if (existing.isPresent()) {
+            Instructor toUpdate = instructorMapper.toEntity(body);
+            toUpdate.setId(id);
+            Instructor updated = instructorService.save(toUpdate);
+            return ResponseEntity.ok(instructorMapper.toResponse(updated));
         }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    @DeleteMapping("{id}")
-    public ResponseEntity<Instructor> delete(@PathVariable long id) {
-        if(instructorRepository.existsById(id)) {
-            instructorRepository.deleteById(id);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable long id) {
+        if (instructorService.findById(id).isPresent()) {
+            instructorService.deleteById(id);
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
