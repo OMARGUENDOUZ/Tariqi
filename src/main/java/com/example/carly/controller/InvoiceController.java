@@ -4,18 +4,19 @@ import com.example.carly.dto.invoice.InvoiceRequest;
 import com.example.carly.dto.invoice.InvoiceResponse;
 import com.example.carly.mapper.InvoiceMapper;
 import com.example.carly.model.Invoice;
-import com.example.carly.repository.InvoiceRepository;
 import com.example.carly.service.FinanceService;
 import com.example.carly.service.InvoiceService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/invoices")
@@ -25,10 +26,10 @@ public class InvoiceController {
     private final FinanceService financeService;
     private final InvoiceMapper invoiceMapper;
 
-    public InvoiceController(InvoiceService invoiceRepository,
+    public InvoiceController(InvoiceService invoiceService,
                              FinanceService financeService,
                              InvoiceMapper invoiceMapper) {
-        this.invoiceService = invoiceRepository;
+        this.invoiceService = invoiceService;
         this.financeService = financeService;
         this.invoiceMapper = invoiceMapper;
     }
@@ -49,18 +50,22 @@ public class InvoiceController {
 
     @GetMapping
     public ResponseEntity<List<InvoiceResponse>> findAll() {
-        List<InvoiceResponse> invoices = invoiceService.findAll()
-                .stream()
-                .map(invoiceMapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(invoices);
+        return ResponseEntity.ok(
+                invoiceService.findAll().stream().map(invoiceMapper::toResponse).toList()
+        );
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<InvoiceResponse>> findAllPaged(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(invoiceService.findAll(pageable).map(invoiceMapper::toResponse));
     }
 
     @PostMapping
     public ResponseEntity<InvoiceResponse> save(
             @RequestBody @Valid InvoiceRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Invoice invoice = invoiceService.save(invoiceMapper.toEntity(body));
+        Invoice invoice = invoiceService.create(invoiceMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/invoices/{id}")
                 .buildAndExpand(invoice.getId())
@@ -72,21 +77,13 @@ public class InvoiceController {
     public ResponseEntity<InvoiceResponse> update(
             @PathVariable long id,
             @RequestBody @Valid InvoiceRequest body) {
-        Optional<Invoice> existing = invoiceService.findById(id);
-        if (existing.isPresent()) {
-            Invoice toUpdate = invoiceMapper.toEntity(body);
-            toUpdate.setId(id);
-            return ResponseEntity.ok(invoiceMapper.toResponse(invoiceService.save(toUpdate)));
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        Invoice updated = invoiceService.update(id, invoiceMapper.toEntity(body));
+        return ResponseEntity.ok(invoiceMapper.toResponse(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (invoiceService.findById(id).isPresent()) {
-            invoiceService.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        invoiceService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

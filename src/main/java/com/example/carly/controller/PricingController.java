@@ -4,17 +4,18 @@ import com.example.carly.dto.pricing.PricingRequest;
 import com.example.carly.dto.pricing.PricingResponse;
 import com.example.carly.mapper.PricingMapper;
 import com.example.carly.model.Pricing;
-import com.example.carly.repository.PricingRepository;
 import com.example.carly.service.PricingService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/pricing")
@@ -38,18 +39,22 @@ public class PricingController {
 
     @GetMapping
     public ResponseEntity<List<PricingResponse>> findAll() {
-        List<PricingResponse> pricings = pricingService.findAll()
-                .stream()
-                .map(pricingMapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(pricings);
+        return ResponseEntity.ok(
+                pricingService.findAll().stream().map(pricingMapper::toResponse).toList()
+        );
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<PricingResponse>> findAllPaged(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(pricingService.findAll(pageable).map(pricingMapper::toResponse));
     }
 
     @PostMapping
     public ResponseEntity<PricingResponse> save(
             @RequestBody @Valid PricingRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Pricing pricing = pricingService.save(pricingMapper.toEntity(body));
+        Pricing pricing = pricingService.create(pricingMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/pricing/{id}")
                 .buildAndExpand(pricing.getId())
@@ -61,21 +66,13 @@ public class PricingController {
     public ResponseEntity<PricingResponse> update(
             @PathVariable long id,
             @RequestBody @Valid PricingRequest body) {
-        Optional<Pricing> existing = pricingService.findById(id);
-        if (existing.isPresent()) {
-            Pricing toUpdate = pricingMapper.toEntity(body);
-            toUpdate.setId(id);
-            return ResponseEntity.ok(pricingMapper.toResponse(pricingService.save(toUpdate)));
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        Pricing updated = pricingService.update(id, pricingMapper.toEntity(body));
+        return ResponseEntity.ok(pricingMapper.toResponse(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (pricingService.findById(id).isPresent()) {
-            pricingService.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        pricingService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

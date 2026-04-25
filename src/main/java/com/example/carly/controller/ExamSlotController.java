@@ -4,17 +4,18 @@ import com.example.carly.dto.examslot.ExamSlotRequest;
 import com.example.carly.dto.examslot.ExamSlotResponse;
 import com.example.carly.mapper.ExamSlotMapper;
 import com.example.carly.model.ExamSlot;
-import com.example.carly.repository.ExamSlotRepository;
 import com.example.carly.service.ExamSlotService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/exam-slots")
@@ -23,9 +24,9 @@ public class ExamSlotController {
     private final ExamSlotService examSlotService;
     private final ExamSlotMapper examSlotMapper;
 
-    public ExamSlotController(ExamSlotService examSlotRepository,
+    public ExamSlotController(ExamSlotService examSlotService,
                               ExamSlotMapper examSlotMapper) {
-        this.examSlotService = examSlotRepository;
+        this.examSlotService = examSlotService;
         this.examSlotMapper = examSlotMapper;
     }
 
@@ -40,24 +41,25 @@ public class ExamSlotController {
     @GetMapping
     public ResponseEntity<List<ExamSlotResponse>> findAll(
             @RequestParam(required = false) Boolean active) {
-
         List<ExamSlot> examSlots = Boolean.TRUE.equals(active)
                 ? examSlotService.findAllActive()
                 : examSlotService.findAll();
-
         return ResponseEntity.ok(
-                examSlots.stream()
-                        .map(examSlotMapper::toResponse)
-                        .toList()
+                examSlots.stream().map(examSlotMapper::toResponse).toList()
         );
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<ExamSlotResponse>> findAllPaged(
+            @PageableDefault(size = 20, sort = "examDate", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(examSlotService.findAll(pageable).map(examSlotMapper::toResponse));
     }
 
     @PostMapping
     public ResponseEntity<ExamSlotResponse> save(
             @RequestBody @Valid ExamSlotRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-
-        ExamSlot saved = examSlotService.save(examSlotMapper.toEntity(body));
+        ExamSlot saved = examSlotService.create(examSlotMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/exam-slots/{id}")
                 .buildAndExpand(saved.getId())
@@ -69,25 +71,13 @@ public class ExamSlotController {
     public ResponseEntity<ExamSlotResponse> update(
             @PathVariable long id,
             @RequestBody @Valid ExamSlotRequest body) {
-
-        Optional<ExamSlot> existing = examSlotService.findById(id);
-
-        if (existing.isPresent()) {
-            ExamSlot toUpdate = examSlotMapper.toEntity(body);
-            toUpdate.setId(id);
-            ExamSlot updated = examSlotService.save(toUpdate);
-            return ResponseEntity.ok(examSlotMapper.toResponse(updated));
-        }
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        ExamSlot updated = examSlotService.update(id, examSlotMapper.toEntity(body));
+        return ResponseEntity.ok(examSlotMapper.toResponse(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (examSlotService.findById(id).isPresent()) {
-            examSlotService.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        examSlotService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

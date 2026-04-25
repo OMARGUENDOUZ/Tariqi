@@ -1,7 +1,10 @@
 package com.example.carly.service;
 
+import com.example.carly.exception.ResourceNotFoundException;
 import com.example.carly.model.Instructor;
 import com.example.carly.repository.InstructorRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,27 +23,33 @@ public class InstructorService {
         return instructorRepository.findAll();
     }
 
+    public Page<Instructor> findAll(Pageable pageable) {
+        return instructorRepository.findAll(pageable);
+    }
+
     public Optional<Instructor> findById(long id) {
         return instructorRepository.findById(id);
     }
 
-    public Instructor save(Instructor instructor) {
+    public Instructor create(Instructor instructor) {
         return instructorRepository.save(instructor);
     }
 
-    public Optional<Instructor> update(long id, Instructor instructor) {
-        if (!instructorRepository.existsById(id)) {
-            return Optional.empty();
-        }
-        instructor.setId(id);
-        return Optional.of(instructorRepository.save(instructor));
+    public Instructor update(long id, Instructor patch) {
+        Instructor existing = instructorRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Instructor", id));
+        existing.setName(patch.getName());
+        existing.setBirthDate(patch.getBirthDate());
+        existing.setPlaceOfBirth(patch.getPlaceOfBirth());
+        existing.setAddress(patch.getAddress());
+        existing.setPhoneNumber(patch.getPhoneNumber());
+        return instructorRepository.save(existing);
     }
 
-    public boolean deleteById(long id) {
+    public void deleteById(long id) {
         if (!instructorRepository.existsById(id)) {
-            return false;
+            throw new ResourceNotFoundException("Instructor", id);
         }
         instructorRepository.deleteById(id);
-        return true;
     }
 }

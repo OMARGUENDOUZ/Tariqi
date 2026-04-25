@@ -1,6 +1,7 @@
 package com.example.carly.service;
 
 import com.example.carly.component.InvoiceCalculator;
+import com.example.carly.exception.ResourceNotFoundException;
 import com.example.carly.model.*;
 import com.example.carly.repository.*;
 import org.springframework.stereotype.Service;
@@ -33,18 +34,16 @@ public class FinanceService {
     @Transactional
     public Invoice generateInvoice(Long studentId) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", studentId));
 
         Pricing pricing = pricingRepository.findByLicenseCategoryAndActiveTrue(student.getRequestedLicense())
-                .orElseThrow(() -> new RuntimeException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "No active pricing found for category: " + student.getRequestedLicense()));
 
         List<ExamStudent> exams = examRepository.findByStudentId(studentId);
 
-        // Delegate calculation to InvoiceCalculator Component
         InvoiceCalculator.InvoiceCalculationResult result = invoiceCalculator.calculate(student, pricing, exams);
 
-        // Calculate paid amount
         List<Payment> payments = paymentRepository.findAll().stream()
                 .filter(p -> p.getStudent().getId() == studentId)
                 .toList();
@@ -53,7 +52,6 @@ public class FinanceService {
                 .map(Payment::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Find existing invoice or create new
         Invoice invoice = invoiceRepository.findAll().stream()
                 .filter(i -> i.getStudentId().equals(studentId))
                 .findFirst()
@@ -63,10 +61,8 @@ public class FinanceService {
         invoice.setBaseCourseFee(pricing.getBaseCourseFee());
         invoice.setExamUnitFee(pricing.getExamUnitFee());
         invoice.setStampUnitFee(pricing.getStampUnitFee());
-
         invoice.setTotalAmount(result.totalAmount());
         invoice.setBreakdown(result.breakdown());
-
         invoice.setPaidAmount(paidAmount);
         invoice.setPaymentHistory(payments);
 

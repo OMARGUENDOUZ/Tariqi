@@ -4,10 +4,12 @@ import com.example.carly.dto.payment.PaymentRequest;
 import com.example.carly.dto.payment.PaymentResponse;
 import com.example.carly.mapper.PaymentMapper;
 import com.example.carly.model.Payment;
-import com.example.carly.repository.PaymentRepository;
 import com.example.carly.service.PaymentService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -15,7 +17,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/payments")
@@ -24,8 +25,7 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final PaymentMapper paymentMapper;
 
-    public PaymentController(PaymentRepository paymentRepository,
-                             PaymentService paymentService,
+    public PaymentController(PaymentService paymentService,
                              PaymentMapper paymentMapper) {
         this.paymentService = paymentService;
         this.paymentMapper = paymentMapper;
@@ -49,18 +49,22 @@ public class PaymentController {
 
     @GetMapping
     public ResponseEntity<List<PaymentResponse>> findAll() {
-        List<PaymentResponse> payments = paymentService.findAll()
-                .stream()
-                .map(paymentMapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(
+                paymentService.findAll().stream().map(paymentMapper::toResponse).toList()
+        );
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<PaymentResponse>> findAllPaged(
+            @PageableDefault(size = 20, sort = "date", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(paymentService.findAll(pageable).map(paymentMapper::toResponse));
     }
 
     @PostMapping
     public ResponseEntity<PaymentResponse> save(
             @RequestBody @Valid PaymentRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Payment payment = paymentService.save(paymentMapper.toEntity(body));
+        Payment payment = paymentService.create(paymentMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/payments/{id}")
                 .buildAndExpand(payment.getId())
@@ -72,21 +76,13 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> update(
             @PathVariable long id,
             @RequestBody @Valid PaymentRequest body) {
-        Optional<Payment> existing = paymentService.findById(id);
-        if (existing.isPresent()) {
-            Payment toUpdate = paymentMapper.toEntity(body);
-            toUpdate.setId(id);
-            return ResponseEntity.ok(paymentMapper.toResponse(paymentService.save(toUpdate)));
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        Payment updated = paymentService.update(id, paymentMapper.toEntity(body));
+        return ResponseEntity.ok(paymentMapper.toResponse(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (paymentService.findById(id).isPresent()) {
-            paymentService.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        paymentService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
