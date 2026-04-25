@@ -1,10 +1,13 @@
 package com.example.carly.service;
 
+import com.example.carly.exception.ResourceNotFoundException;
 import com.example.carly.model.Payment;
 import com.example.carly.model.PaymentStatus;
 import com.example.carly.model.Student;
 import com.example.carly.repository.PaymentRepository;
 import com.example.carly.repository.StudentRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -26,7 +29,7 @@ public class PaymentService {
 
     public Payment recordPayment(Long studentId, BigDecimal amount) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new IllegalArgumentException("Student not found: " + studentId));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", studentId));
         Payment payment = new Payment();
         payment.setStudent(student);
         payment.setAmount(amount);
@@ -39,27 +42,32 @@ public class PaymentService {
         return paymentRepository.findAll();
     }
 
+    public Page<Payment> findAll(Pageable pageable) {
+        return paymentRepository.findAll(pageable);
+    }
+
     public Optional<Payment> findById(long id) {
         return paymentRepository.findById(id);
     }
 
-    public Payment save(Payment payment) {
+    public Payment create(Payment payment) {
         return paymentRepository.save(payment);
     }
 
-    public Optional<Payment> update(long id, Payment payment) {
-        if (!paymentRepository.existsById(id)) {
-            return Optional.empty();
-        }
-        payment.setId(id);
-        return Optional.of(paymentRepository.save(payment));
+    public Payment update(long id, Payment patch) {
+        Payment existing = paymentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", id));
+        existing.setStudent(patch.getStudent());
+        existing.setStatus(patch.getStatus());
+        existing.setAmount(patch.getAmount());
+        existing.setDate(patch.getDate());
+        return paymentRepository.save(existing);
     }
 
-    public boolean deleteById(long id) {
+    public void deleteById(long id) {
         if (!paymentRepository.existsById(id)) {
-            return false;
+            throw new ResourceNotFoundException("Payment", id);
         }
         paymentRepository.deleteById(id);
-        return true;
     }
 }

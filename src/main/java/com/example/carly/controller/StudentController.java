@@ -8,7 +8,10 @@ import com.example.carly.mapper.StudentMapper;
 import com.example.carly.model.Student;
 import com.example.carly.service.StudentService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -39,9 +42,13 @@ public class StudentController {
     @GetMapping
     public ResponseEntity<List<StudentResponse>> searchStudents(StudentFilterDto filters) {
         List<Student> students = studentService.findWithFilters(filters);
-        return students.isEmpty()
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.ok(students.stream().map(studentMapper::toResponse).toList());
+        return ResponseEntity.ok(students.stream().map(studentMapper::toResponse).toList());
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<StudentResponse>> findAllPaged(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(studentService.findAll(pageable).map(studentMapper::toResponse));
     }
 
     @PostMapping("/{id}/photo")
@@ -49,16 +56,14 @@ public class StudentController {
             @PathVariable long id,
             @RequestBody @Valid StudentPhotoUploadRequest payload) {
         Student student = studentService.uploadPhotoBase64(id, payload.photoBase64());
-        return (student != null)
-                ? ResponseEntity.ok(studentMapper.toResponse(student))
-                : ResponseEntity.notFound().build();
+        return ResponseEntity.ok(studentMapper.toResponse(student));
     }
 
     @PostMapping
     public ResponseEntity<StudentResponse> save(
             @RequestBody @Valid StudentRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Student student = studentService.save(studentMapper.toEntity(body));
+        Student student = studentService.create(studentMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/students/{id}")
                 .buildAndExpand(student.getId())
@@ -70,18 +75,13 @@ public class StudentController {
     public ResponseEntity<StudentResponse> update(
             @PathVariable long id,
             @RequestBody @Valid StudentRequest body) {
-        Student student = studentService.save(id, studentMapper.toEntity(body));
-        return (student != null)
-                ? ResponseEntity.ok(studentMapper.toResponse(student))
-                : ResponseEntity.notFound().build();
+        Student updated = studentService.update(id, studentMapper.toEntity(body));
+        return ResponseEntity.ok(studentMapper.toResponse(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (studentService.existsById(id)) {
-            studentService.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        studentService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

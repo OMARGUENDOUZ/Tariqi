@@ -4,17 +4,18 @@ import com.example.carly.dto.instructor.InstructorRequest;
 import com.example.carly.dto.instructor.InstructorResponse;
 import com.example.carly.mapper.InstructorMapper;
 import com.example.carly.model.Instructor;
-import com.example.carly.repository.InstructorRepository;
 import com.example.carly.service.InstructorService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/instructors")
@@ -23,9 +24,9 @@ public class InstructorController {
     private final InstructorService instructorService;
     private final InstructorMapper instructorMapper;
 
-    public InstructorController(InstructorService instructorRepository,
+    public InstructorController(InstructorService instructorService,
                                 InstructorMapper instructorMapper) {
-        this.instructorService = instructorRepository;
+        this.instructorService = instructorService;
         this.instructorMapper = instructorMapper;
     }
 
@@ -39,18 +40,22 @@ public class InstructorController {
 
     @GetMapping
     public ResponseEntity<List<InstructorResponse>> findAll() {
-        List<InstructorResponse> instructors = instructorService.findAll()
-                .stream()
-                .map(instructorMapper::toResponse)
-                .toList();
-        return ResponseEntity.ok(instructors);
+        return ResponseEntity.ok(
+                instructorService.findAll().stream().map(instructorMapper::toResponse).toList()
+        );
+    }
+
+    @GetMapping("/page")
+    public ResponseEntity<Page<InstructorResponse>> findAllPaged(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(instructorService.findAll(pageable).map(instructorMapper::toResponse));
     }
 
     @PostMapping
     public ResponseEntity<InstructorResponse> save(
             @RequestBody @Valid InstructorRequest body,
             UriComponentsBuilder uriComponentsBuilder) {
-        Instructor instructor = instructorService.save(instructorMapper.toEntity(body));
+        Instructor instructor = instructorService.create(instructorMapper.toEntity(body));
         URI location = uriComponentsBuilder
                 .path("/api/v1/instructors/{id}")
                 .buildAndExpand(instructor.getId())
@@ -62,24 +67,13 @@ public class InstructorController {
     public ResponseEntity<InstructorResponse> update(
             @PathVariable long id,
             @RequestBody @Valid InstructorRequest body) {
-        Optional<Instructor> existing = instructorService.findById(id);
-
-        if (existing.isPresent()) {
-            Instructor toUpdate = instructorMapper.toEntity(body);
-            toUpdate.setId(id);
-            Instructor updated = instructorService.save(toUpdate);
-            return ResponseEntity.ok(instructorMapper.toResponse(updated));
-        }
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        Instructor updated = instructorService.update(id, instructorMapper.toEntity(body));
+        return ResponseEntity.ok(instructorMapper.toResponse(updated));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable long id) {
-        if (instructorService.findById(id).isPresent()) {
-            instructorService.deleteById(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        instructorService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
